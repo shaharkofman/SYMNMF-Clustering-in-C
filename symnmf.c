@@ -259,3 +259,72 @@ double** calculate_norm_matrix(double **data_points, int N, int d) {
 
     return norm_matrix;
 }
+/*
+ * ================================================================================================
+ * ==============================================MAIN==============================================
+ * ================================================================================================
+*/
+int main(int argc, char *argv[]) {
+    char *goal;
+    char *filename;
+    int N = 0;
+    int d = 0;
+    double **data_points = NULL;
+    double **sym_matrix = NULL;
+    double **ddg_matrix = NULL;
+    double **norm_matrix = NULL;
+
+    /* validate and parsing */
+    if (argc != 3) {
+        printf("An Error Has Occurred\n");
+        return 1;
+    }
+    goal = argv[1];
+    filename = argv[2];
+    
+    data_points = read_data_points(filename, &N, &d);
+    if (data_points == NULL) {
+        printf("An Error Has Occurred\n");
+        return 1;
+    }
+    /* execution */
+    if (string_compare(goal, "sym") == 1) {
+        sym_matrix = calculate_sym_matrix(data_points, N, d);
+        if (sym_matrix == NULL) {
+            printf("An Error Has Occurred\n");
+            free_matrix(data_points, N);
+            return 1;
+        }
+        print_matrix(sym_matrix, N, N);
+        free_matrix(sym_matrix, N);
+    }
+    else if (string_compare(goal, "ddg") == 1) {
+        ddg_matrix = calculate_ddg_matrix(data_points, N, d);
+        if (ddg_matrix == NULL) {
+            printf("An Error Has Occurred\n");
+            free_matrix(data_points, N);
+            return 1;
+        }
+        print_matrix(ddg_matrix, N, N);
+        free_matrix(ddg_matrix, N);
+    }
+    else if (string_compare(goal, "norm") == 1) {
+        norm_matrix = calculate_norm_matrix(data_points, N, d);
+        if (norm_matrix == NULL) {
+            printf("An Error Has Occurred\n");
+            free_matrix(data_points, N);
+            return 1;
+        }
+        print_matrix(norm_matrix, N, N);
+        free_matrix(norm_matrix, N);
+    }
+    else {
+        printf("An Error Has Occurred\n");
+        return 1; /* invalid goal */
+    }
+    /* free allocated memory */
+    /* TODO: free the memory */
+    free_matrix(data_points, N); /* free original matrix */
+
+    return 0;
+}
