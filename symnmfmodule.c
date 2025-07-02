@@ -94,3 +94,113 @@ static PyObject* c_to_py_matrix(double **matrix, int N, int d) {
     }
     return py_matrix;
 }
+/*
+ * ========================================SYM_CAPI=================================================
+ * this function is the C API for calling calculate_sym_matrix from python
+*/
+PyObject* sym_capi(PyObject *self, PyObject *args) {
+    PyObject *python_points_list;
+    int N;
+    int d;
+    double **data_points;
+    double **sym_matrix;
+    PyObject *py_return_matrix;
+
+    /* parse the python object */
+    if (!PyArg_ParseTuple(args, "O", &python_points_list)) {
+        return NULL; /* error is raised by parsing function */
+    }
+    /* convert python object to C matrix using the helper method */
+    data_points = py_to_c_matrix(python_points_list, &N, &d);
+    if (data_points == NULL) {
+        return NULL; /* error is raised by parsing function */
+    }
+    /* calculate the symmetric matrix */
+    sym_matrix = calculate_sym_matrix(data_points, N, d);
+    free_matrix(data_points, N); /* we dont need the data points anymore */
+    if (sym_matrix == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "An Error Has Occurred");
+        return NULL; 
+    }
+    /* convert the C matrix to a python object */
+    py_return_matrix = c_to_py_matrix(sym_matrix, N, N);
+    free_matrix(sym_matrix, N); /* we dont need the symetric matrix anymore */
+    if (py_return_matrix == NULL) {
+        return NULL; /* error is raised by parsing function */
+    }
+    return py_return_matrix; 
+}
+/*
+ * ========================================DDG_CAPI=================================================
+ * this function is the C API for calling calculate_ddg_matrix from python
+ * it is almost identical to the sym_capi function but calls calculate_ddg_matrix instead of calculate_sym_matrix
+*/
+PyObject* ddg_capi(PyObject *self, PyObject *args) {
+    PyObject *python_points_list;
+    int N;
+    int d;
+    double **data_points;
+    double **ddg_matrix;
+    PyObject *py_return_matrix;
+
+    /* parse the python object */
+    if (!PyArg_ParseTuple(args, "O", &python_points_list)) {
+        return NULL; /* error is raised by parsing function */
+    }
+    /* convert python object to C matrix using the helper method */
+    data_points = py_to_c_matrix(python_points_list, &N, &d);
+    if (data_points == NULL) {
+        return NULL; /* error is raised by parsing function */
+    }
+    /* calculate the degree matrix */
+    ddg_matrix = calculate_ddg_matrix(data_points, N, d);
+    free_matrix(data_points, N); /* we dont need the data points anymore */
+    if (ddg_matrix == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "An Error Has Occurred");
+        return NULL; 
+    }
+    /* convert the C matrix to a python object */
+    py_return_matrix = c_to_py_matrix(ddg_matrix, N, N);
+    free_matrix(ddg_matrix, N); /* we dont need the degree matrix anymore */
+    if (py_return_matrix == NULL) {
+        return NULL; /* error is raised by parsing function */
+    }
+    return py_return_matrix; 
+}
+/*
+ * ========================================NORM_CAPI=================================================
+ * this function is the C API for calling calculate_norm_matrix from python
+ * it is almost identical to the sym_capi function but calls calculate_norm_matrix instead of calculate_sym_matrix
+*/
+PyObject* norm_capi(PyObject *self, PyObject *args) {
+    PyObject *python_points_list;
+    int N;
+    int d;
+    double **data_points;
+    double **norm_matrix;
+    PyObject *py_return_matrix;
+
+    /* parse the python object */
+    if (!PyArg_ParseTuple(args, "O", &python_points_list)) {
+        return NULL; /* error is raised by parsing function */
+    }
+    /* convert python object to C matrix using the helper method */
+    data_points = py_to_c_matrix(python_points_list, &N, &d);
+    if (data_points == NULL) {
+        return NULL; /* error is raised by parsing function */
+    }
+    /* calculate the degree matrix */
+    norm_matrix = calculate_norm_matrix(data_points, N, d);
+    free_matrix(data_points, N); /* we dont need the data points anymore */
+    if (norm_matrix == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "An Error Has Occurred");
+        return NULL; 
+    }
+    /* convert the C matrix to a python object */
+    py_return_matrix = c_to_py_matrix(norm_matrix, N, N);
+    free_matrix(norm_matrix, N); /* we dont need the normalized matrix anymore */
+    if (py_return_matrix == NULL) {
+        return NULL; /* error is raised by parsing function */
+    }
+    return py_return_matrix; 
+}
