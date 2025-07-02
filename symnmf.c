@@ -260,6 +260,87 @@ double** calculate_norm_matrix(double **data_points, int N, int d) {
     return norm_matrix;
 }
 /*
+ * ========================================MAT_MULTIPLY========================================
+ * helper method to multiply two matrixes A and B
+*/
+double** mat_multiply(double** A, double** B, int rowsA, int colsA, int colsB) {
+    double **return_matrix;
+    int i;
+    int j;
+    int k;
+
+    /* allocation */
+    return_matrix = (double **)calloc(rowsA, sizeof(double *));
+    if (return_matrix == NULL) {
+        return NULL; /* caller is the handler */
+    }
+    for (i = 0; i < rowsA; i++) {
+        return_matrix[i] = (double *)calloc(colsB, sizeof(double));
+        if (return_matrix[i] == NULL) {
+            for (j = 0; j < i; j++) {
+                free(return_matrix[j]);
+            }
+            free(return_matrix);
+            return NULL; /* caller is the handler */
+        }
+    }
+    /* multiplication */
+    for (i = 0; i < rowsA; i++) {
+        for (j = 0; j < colsB; j++) {
+            for (k = 0; k < colsA; k++) {
+                return_matrix[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+    return return_matrix;
+}
+/*
+ * ========================================MAT_TRANSPOSE===========================================
+ * helper method to transpose a matrix A
+*/
+double** mat_transpose(double** A, int rows, int cols) {
+    double **return_matrix;
+    int i;
+    int j;
+
+    /* allocation */
+    return_matrix = (double **)malloc(cols * sizeof(double *)); /* rows and cols switch places */
+    if (return_matrix == NULL) {
+        return NULL; /* caller is the handler */
+    }
+    for (i = 0; i < cols; i++) {
+        return_matrix[i] = (double *)malloc(rows * sizeof(double));
+        if (return_matrix[i] == NULL) {
+            for (j = 0; j < i; j++) {
+                free(return_matrix[j]);
+            }
+            free(return_matrix);
+            return NULL;
+        }
+    }
+    for (i = 0; i < rows; i++) {
+        for (j = 0; j < cols; j++) {
+            return_matrix[j][i] = A[i][j]; /* switch places */
+        }
+    }
+    return return_matrix;
+}
+/*
+ * =======================================FROBENIUS_NORM_SQUARED===================================
+ * helper method to calculate the frobenius norm squared of two matrixes A and B
+*/
+double frobenius_norm_squared(double** A, double** B, int rows, int cols) {
+    double norm = 0.0;
+    int i;
+    int j;
+    for (i = 0; i < rows; i++) {
+        for (j = 0; j < cols; j++) {
+            norm += (A[i][j] - B[i][j]) * (A[i][j] - B[i][j]);
+        }
+    }
+    return norm;
+}
+/*
  * ================================================================================================
  * ==============================================MAIN==============================================
  * ================================================================================================
