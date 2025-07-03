@@ -341,6 +341,137 @@ double frobenius_norm_squared(double** A, double** B, int rows, int cols) {
     return norm;
 }
 /*
+ * ===========================================OPTIMIZE_H===========================================
+ * this method does the core optimization of the algorithm, iteratively.
+ * the matrix operations are left for the helper methods
+ */
+double** optimize_h(double** W, double** init_H, int N, int k) {
+    const int max_iter = 300;
+    const double eps = 1e-4;
+    const double beta = 0.5;
+    double **curr_H;
+    double **next_H;
+    int i;
+    int j;
+    int iter;
+    double **curr_H_transpose;
+    double **denominator;
+    double **numerator;
+    double **temp_matrix;
+    double curr_frobenius_norm;
+    /* allocate memory for curr_H, next_H */
+    curr_H = (double **)malloc(N * sizeof(double *));
+    if (curr_H == NULL) {
+        return NULL; 
+    }
+    for (i = 0; i < N; i++) {
+        curr_H[i] = (double *)malloc(k * sizeof(double));
+        if (curr_H[i] == NULL) {
+            for (j = 0; j < i; j++) {
+                free(curr_H[j]);
+            }
+            free(curr_H);
+            return NULL; /* caller is the handler */
+        }
+        /* copy initial H from the argument */
+        for (j = 0; j < k; j++) {
+            curr_H[i][j] = init_H[i][j];
+        }
+    }
+    next_H = (double **)malloc(N * sizeof(double *));
+    if (next_H == NULL) {
+        free_matrix(curr_H, N);
+        return NULL;
+    }
+    for (i = 0; i < N; i++) {
+        next_H[i] = (double *)malloc(k * sizeof(double));
+        if (next_H[i] == NULL) {
+            for (j = 0; j < i; j++) {
+                free(next_H[j]);
+            }
+            free(next_H);
+            free_matrix(curr_H, N);
+            return NULL; /* caller is the handler */
+        }
+    }
+    /* optimization loop */
+    for (iter = 0; iter < max_iter; iter++) {
+        /* get H^T, which is allocated in the helper method */
+        curr_H_transpose = mat_transpose(curr_H, N, k);
+        if (curr_H_transpose == NULL) {
+            free_matrix(curr_H, N);
+            free_matrix(next_H, N);
+            return NULL; /* caller is the handler */
+        }
+        /* calculate denominator */
+        temp_matrix = mat_multiply(curr_H, curr_H_transpose, N, k, N);
+        if (temp_matrix == NULL) {
+            free_matrix(curr_H, N);
+            free_matrix(next_H, N);
+            free_matrix(curr_H_transpose, k);
+            return NULL; /* caller is the handler */
+        }
+        denominator = mat_multiply(temp_matrix, curr_H, N, N, k);
+        if (denominator == NULL) {
+            free_matrix(curr_H, N);
+            free_matrix(next_H, N);
+            free_matrix(curr_H_transpose, k);
+            free_matrix(temp_matrix, N);
+            return NULL; /* caller is the handler */
+        }
+        free_matrix(temp_matrix, N); /* we dont need temp_matrix anymore */
+        /* calculate numerator */
+        numerator = mat_multiply(W, curr_H, N, N, k);
+        if (numerator == NULL) {
+            free_matrix(curr_H, N);
+            free_matrix(next_H, N);
+            free_matrix(curr_H_transpose, k);
+            free_matrix(denominator, N);
+            return NULL; /* caller is the handler */
+        }
+        /* update next_H */
+        for (i = 0; i < N; i++) {
+            for (j = 0; j < k; j++) {
+                if (denominator[i][j] == 0) {
+                    next_H[i][j] = curr_H[i][j]; /* avoid division by zero */
+                }
+                else {
+                    next_H[i][j] = curr_H[i][j] * (1 - beta + beta * (numerator[i][j] / denominator[i][j]));
+                }
+            }
+        }
+        /* check convergence */
+        curr_frobenius_norm = frobenius_norm_squared(next_H, curr_H, N, k);
+        if (curr_frobenius_norm < eps) {
+            free_matrix(curr_H, N);
+            free_matrix(curr_H_transpose, k);
+            free_matrix(denominator, N);
+            free_matrix(numerator, N);
+            return next_H; /* converged */
+        }
+        /* swap curr_H and next_H if no convergence */
+        for (i = 0; i < N; i++) {
+            for (j = 0; j < k; j++) {
+                curr_H[i][j] = next_H[i][j];
+            }
+        }
+        /* reset next_H for the next iteration */
+        for (i = 0; i < N; i++) {
+            for (j = 0; j < k; j++) {
+                next_H[i][j] = 0.0; /* reset */
+            }
+        }
+        /* free intermediate matrices */
+        free_matrix(curr_H_transpose, k); 
+        free_matrix(denominator, N);
+        free_matrix(numerator, N); 
+    }
+    /* if we reach here, we did not converge - then we should free curr_H, next_H and return*/
+    free_matrix(curr_H, N);
+    free_matrix(next_H, N);
+    return NULL; /* caller is the handler */
+}
+/*
  * ================================================================================================
  * ==============================================MAIN==============================================
  * ================================================================================================
