@@ -204,3 +204,61 @@ PyObject* norm_capi(PyObject *self, PyObject *args) {
     }
     return py_return_matrix; 
 }
+/* 
+ * ========================================SYMNMF_CAPI=============================================
+ * this function is the C API for calling symnmf from python
+ * in additio to the data points received from python, it also receives the initial randomized matrix H
+*/
+PyObject* symnmf_capi(PyObject *self, PyObject *args) {
+    PyObject* python_points_list;
+    PyObject* python_init_H;
+    int N;
+    int d;
+    int N_H; /* place holder for py_to_c output */
+    int k; 
+    double **data_points;
+    double **norm_matrix;
+    double **init_H;
+    double **optimized_H;
+    PyObject* py_return_matrix;
+
+    /* parse the python object */
+    if (!PyArg_ParseTuple(args, "OO", &python_points_list, &python_init_H)) {
+        return NULL; /* error is raised by parsing function */
+    }
+    /* get matrix W by converting python_points_list to C and calling C methods */
+    data_points = py_to_c_matrix(python_points_list, &N, &d);
+    if (data_points == NULL) {
+        return NULL; /* error is raised by parsing function */
+    }
+    norm_matrix = calculate_norm_matrix(data_points, N, d);
+    free_matrix(data_points, N); /* we dont need the data points anymore */
+    if (norm_matrix == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "An Error Has Occurred");
+        return NULL; 
+    }
+
+    /* convert initial H matrix to C */
+    init_H = py_to_c_matrix(python_init_H, &N_H, &k);
+    if (init_H == NULL) {
+        free_matrix(norm_matrix, N);
+        return NULL;
+    }
+
+    /* use optimize_h to execute the algorithm */
+    optimized_H = optimize_h(norm_matrix, init_H, N, k);
+    free_matrix(norm_matrix, N);
+    free_matrix(init_H, N_H); /* no problem with dimensions even though H is Nxk since free_matrix works by rows */
+    if (optimized_H == NULL) {
+        PyErr_SetString(PyExc_MemoryError, "An Error Has Occurred");
+        return NULL;
+    }
+
+    /* convert H back to python and return it */
+    py_return_matrix = c_to_py_matrix(optimized_H, N, k);
+    free_matrix(optimized_H, N);
+    if (py_return_matrix == NULL) {
+        return NULL; /* error is raised by parsing function */
+    }
+    return py_return_matrix; 
+}
