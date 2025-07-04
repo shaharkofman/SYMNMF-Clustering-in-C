@@ -1,3 +1,25 @@
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+#include "symnmf.h"
+
+static PyMethodDef symnmf_methods[] = {
+    {"sym", (PyCFunction)sym_capi, METH_VARARGS, "calculate similarity matrix A"},
+    {"ddg", (PyCFunction)ddg_capi, METH_VARARGS, "calculate diagonal degree matrix D"},
+    {"norm", (PyCFunction)norm_capi, METH_VARARGS, "calculates normalized similarity matrix W"},
+    {"symnmf", (PyCFunction)symnmf_capi, METH_VARARGS, "execute the full symnmf algorithm"},
+    {NULL, NULL, 0, NULL} 
+};
+static struct PyModuleDef symnmfmodule = {
+    PyModuleDef_HEAD_INIT,
+    "symnmf",                                    
+    NULL,
+    -1,
+    symnmf_methods
+};
+PyMODINIT_FUNC PyInit_symnmf(void) {
+    return PyModule_Create(&symnmfmodule);
+}
+
 /*
 ===============================================PY_TO_C_MATRIX=========================================
  * similarly to how we read input, this function takes python objects and builds the c matrix 
