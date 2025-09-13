@@ -13,6 +13,17 @@ def print_matrix(mat):
         print(','.join(['%.4f' % num for num in row]))
 
 '''
+===========================================INIT_H===============================================
+this method initializes the H matrix for the symnmf algorithm
+'''
+def init_H(W, k):
+    m = np.array(W).mean() #convert to numpy array and get average cleanly
+    upper_bound = 2 * np.sqrt(m/k)
+    N = len(W)
+    init_H = np.random.uniform(low=0, high=upper_bound, size=(N,k)) # a random matrix of size Nxk with values in the legal interval
+    return init_H.tolist() #return as python matrix
+
+'''
 =================================================================================================
 =============================================MAIN================================================
 =================================================================================================
@@ -37,15 +48,10 @@ def main():
     elif goal == 'norm':
         res = symnmf.norm(data_points)
         print_matrix(res)
-    #if we want the full run, we need the matrix W, and to calculate the average over all its entries
-    # and then we can get the initial H and call symnmf
     elif goal == 'symnmf':
-        W = symnmf.norm(data_points)
-        m = np.array(W).mean() #convert to numpy array and get average cleanly
-        upper_bound = 2 * np.sqrt(m/k)
-        N = len(data_points)
-        init_H = np.random.uniform(low=0, high=upper_bound, size=(N,k)) # a random matrix of size Nxk with values in the legal interval
-        optimized_H = symnmf.symnmf(data_points, init_H.tolist()) #pass the data and the initial H in the form of a python matrix
+        W = symnmf.norm(data_points)  
+        initial_H = init_H(W, k)        
+        optimized_H = symnmf.symnmf(W, initial_H)  
         print_matrix(optimized_H)
         
     
