@@ -27,8 +27,7 @@ double** read_data_points(char *file_name, int *N, int *d) {
     FILE *file;
     double value;
     char c;
-    int point_count = 0;
-    int dim = 0;
+    int point_count = 0, dim = 0;
     double **matrix;
     int i, j;
 
@@ -39,22 +38,12 @@ double** read_data_points(char *file_name, int *N, int *d) {
     }
     /* count the number of points and dimension */
     while (fscanf(file, "%lf%c", &value, &c) != EOF) { /* %lf is for floating point number and %c is for delimeter (comma or newline) */
-        if (point_count == 0) {
-            dim++; /* first point, count dimension */
-        }
-        if (c == '\n') {
-            point_count++; /* end of point */
-        }
+        if (point_count == 0) { dim++; } /* first point, count dimension */
+        if (c == '\n') { point_count++; } /* end of point */
     }
-    /* in case no newline is in last line */
-    if (c != '\n' && ftell(file) > 0) {
-        point_count++;
-    }
-    *N = point_count; /* used to access point_count globally */
-    *d = dim; /* used to access dim globally */
-
+    if (c != '\n' && ftell(file) > 0) { point_count++; } /* in case no newline is in last line */
+    *N = point_count; *d = dim; /* used to access point_count and dim globally */
     rewind(file); /* reset file pointer to the beginning */
-
     /* allocate memory for the matrix */
     matrix = (double **)malloc(point_count * sizeof(double *));
     if (matrix == NULL) {
@@ -66,21 +55,13 @@ double** read_data_points(char *file_name, int *N, int *d) {
         matrix[i] = (double *)malloc(dim * sizeof(double));
         if (matrix[i] == NULL) {
             printf("An Error Has Occured\n");
-            for (j = 0; j < i; j++) {
-                free(matrix[j]); /* free previously allocated rows */
-            }
-            free(matrix);
-            fclose(file);
-            exit(1);
+            for (j = 0; j < i; j++) { free(matrix[j]); } /* free previously allocated rows */
+            free(matrix); fclose(file); exit(1);
         }
     }
-    /* populate matrix*/
-    for (i = 0; i < point_count; i++) {
-        for (j = 0; j < dim; j++) {
-            fscanf(file, "%lf%c", &matrix[i][j], &c);
-        }
+    for (i = 0; i < point_count; i++) { /* populate matrix*/
+        for (j = 0; j < dim; j++) { fscanf(file, "%lf%c", &matrix[i][j], &c); }
     }
-
     fclose(file);
     return matrix;
 }
@@ -152,7 +133,7 @@ void print_matrix(double **matrix, int rows, int cols) {
         for (j = 0; j < cols; j++) {
             printf("%.4f", matrix[i][j]);
             if (j < cols - 1) {
-                printf(", ");
+                printf(",");
             }
         }
         printf("\n");
@@ -180,14 +161,14 @@ double** calculate_ddg_matrix(double **data_points, int N, int d) {
     ddg_matrix = (double **)malloc(N * sizeof(double *));
     if (ddg_matrix == NULL) {
         free_matrix(sym_matrix, N); /* free intermediate matrix */
-        return NULL; /* caller is the handler */
+        return NULL; 
     }
     for (i = 0; i < N; i++) {
         ddg_matrix[i] = (double *)calloc(N, sizeof(double)); /* we use calloc for the 0 initialization */
         if (ddg_matrix[i] == NULL) { 
             free_matrix(sym_matrix, N);
             free_matrix(ddg_matrix, i);
-            return NULL; /* caller is the handler */
+            return NULL; 
         }
         /* calculate row sum for each row, place the sum on the diagonal of that row */
         row_sum = 0.0;
@@ -206,34 +187,28 @@ double** calculate_ddg_matrix(double **data_points, int N, int d) {
  * this method reuses calculate_sym_matrix() to calculate the symmetric matrix A
 */
 double** calculate_norm_matrix(double **data_points, int N, int d) {
-    int i;
-    int j;
+    int i, j;
     double* degrees;
-    double **sym_matrix;
-    double **norm_matrix;
+    double **sym_matrix, **norm_matrix;
 
     /* get similarity matrix A */
     sym_matrix = calculate_sym_matrix(data_points, N, d);
-    if (sym_matrix == NULL) {
-        return NULL; /* caller is the handler */
-    }
+    if (sym_matrix == NULL) { return NULL; } /* caller is the handler */
     /* calculate array degrees, in which every entry is a row sum */
     degrees = (double *)calloc(N, sizeof(double)); /* again for 0 initialization */
     if (degrees == NULL) {
         free_matrix(sym_matrix, N);
-        return NULL; /* caller is the handler */
+        return NULL; 
     }
     for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) {
-            degrees[i] += sym_matrix[i][j];
-        }
+        for (j = 0; j < N; j++) { degrees[i] += sym_matrix[i][j]; }
     }
     /* allocate memory for W */
     norm_matrix = (double **)malloc(N * sizeof(double *));
     if (norm_matrix == NULL) {
         free_matrix(sym_matrix, N);
         free(degrees);
-        return NULL; /* caller is the handler */
+        return NULL; 
     }
     for (i = 0; i < N; i++) {
         norm_matrix[i] = (double *)malloc(N * sizeof(double));
@@ -241,7 +216,7 @@ double** calculate_norm_matrix(double **data_points, int N, int d) {
             free_matrix(sym_matrix, N);
             free(degrees);
             free_matrix(norm_matrix, i);
-            return NULL; /* caller is the handler */
+            return NULL; 
         }
         /* to calculate entry i,j of W we simply calculate A_ij/(sqrt(degree_i) * sqrt(degree_j)) */
         for (j = 0; j < N; j++) {
@@ -253,10 +228,7 @@ double** calculate_norm_matrix(double **data_points, int N, int d) {
             }
         }
     }
-    /* free un needed data */
-    free_matrix(sym_matrix, N);
-    free(degrees);
-
+    free_matrix(sym_matrix, N); free(degrees); /* free un needed data */
     return norm_matrix;
 }
 /*
@@ -281,7 +253,7 @@ double** mat_multiply(double** A, double** B, int rowsA, int colsA, int colsB) {
                 free(return_matrix[j]);
             }
             free(return_matrix);
-            return NULL; /* caller is the handler */
+            return NULL; 
         }
     }
     /* multiplication */
@@ -349,127 +321,57 @@ double** optimize_h(double** W, double** init_H, int N, int k) {
     const int max_iter = 300;
     const double eps = 1e-4;
     const double beta = 0.5;
-    double **curr_H;
-    double **next_H;
-    int i;
-    int j;
-    int iter;
-    double **curr_H_transpose;
-    double **denominator;
-    double **numerator;
-    double **temp_matrix;
+    double **curr_H, **next_H, **curr_H_transpose, **denominator, **numerator, **temp_matrix;
+    int i, j, iter;
     double curr_frobenius_norm;
+
     /* allocate memory for curr_H, next_H */
     curr_H = (double **)malloc(N * sizeof(double *));
-    if (curr_H == NULL) {
-        return NULL; 
-    }
+    if (curr_H == NULL) { return NULL; }
     for (i = 0; i < N; i++) {
         curr_H[i] = (double *)malloc(k * sizeof(double));
         if (curr_H[i] == NULL) {
-            for (j = 0; j < i; j++) {
-                free(curr_H[j]);
-            }
-            free(curr_H);
-            return NULL; /* caller is the handler */
-        }
-        /* copy initial H from the argument */
-        for (j = 0; j < k; j++) {
-            curr_H[i][j] = init_H[i][j];
-        }
+            for (j = 0; j < i; j++) { free(curr_H[j]); }
+            free(curr_H); return NULL; } /* caller is the handler */
+        for (j = 0; j < k; j++) { curr_H[i][j] = init_H[i][j]; } /* copy initial H from the argument */
     }
     next_H = (double **)malloc(N * sizeof(double *));
-    if (next_H == NULL) {
-        free_matrix(curr_H, N);
-        return NULL;
-    }
+    if (next_H == NULL) { free_matrix(curr_H, N); return NULL; }
     for (i = 0; i < N; i++) {
         next_H[i] = (double *)malloc(k * sizeof(double));
         if (next_H[i] == NULL) {
-            for (j = 0; j < i; j++) {
-                free(next_H[j]);
-            }
-            free(next_H);
-            free_matrix(curr_H, N);
-            return NULL; /* caller is the handler */
-        }
+            for (j = 0; j < i; j++) { free(next_H[j]); }
+            free(next_H); free_matrix(curr_H, N); return NULL; } 
     }
     /* optimization loop */
     for (iter = 0; iter < max_iter; iter++) {
-        /* get H^T, which is allocated in the helper method */
-        curr_H_transpose = mat_transpose(curr_H, N, k);
-        if (curr_H_transpose == NULL) {
-            free_matrix(curr_H, N);
-            free_matrix(next_H, N);
-            return NULL; /* caller is the handler */
-        }
-        /* calculate denominator */
-        temp_matrix = mat_multiply(curr_H, curr_H_transpose, N, k, N);
-        if (temp_matrix == NULL) {
-            free_matrix(curr_H, N);
-            free_matrix(next_H, N);
-            free_matrix(curr_H_transpose, k);
-            return NULL; /* caller is the handler */
-        }
+        curr_H_transpose = mat_transpose(curr_H, N, k); /* get H^T, which is allocated in the helper method */
+        if (curr_H_transpose == NULL) { free_matrix(curr_H, N); free_matrix(next_H, N); return NULL; } 
+        temp_matrix = mat_multiply(curr_H, curr_H_transpose, N, k, N); /* calculate denominator */
+        if (temp_matrix == NULL) { free_matrix(curr_H, N); free_matrix(next_H, N); free_matrix(curr_H_transpose, k); return NULL; } 
         denominator = mat_multiply(temp_matrix, curr_H, N, N, k);
-        if (denominator == NULL) {
-            free_matrix(curr_H, N);
-            free_matrix(next_H, N);
-            free_matrix(curr_H_transpose, k);
-            free_matrix(temp_matrix, N);
-            return NULL; /* caller is the handler */
-        }
+        if (denominator == NULL) { free_matrix(curr_H, N); free_matrix(next_H, N); free_matrix(curr_H_transpose, k); free_matrix(temp_matrix, N); return NULL; } 
         free_matrix(temp_matrix, N); /* we dont need temp_matrix anymore */
-        /* calculate numerator */
-        numerator = mat_multiply(W, curr_H, N, N, k);
-        if (numerator == NULL) {
-            free_matrix(curr_H, N);
-            free_matrix(next_H, N);
-            free_matrix(curr_H_transpose, k);
-            free_matrix(denominator, N);
-            return NULL; /* caller is the handler */
-        }
-        /* update next_H */
-        for (i = 0; i < N; i++) {
+        numerator = mat_multiply(W, curr_H, N, N, k); /* calculate numerator */
+        if (numerator == NULL) { free_matrix(curr_H, N); free_matrix(next_H, N); free_matrix(curr_H_transpose, k); free_matrix(denominator, N); return NULL; } 
+        for (i = 0; i < N; i++) { /* update next_H */
             for (j = 0; j < k; j++) {
-                if (denominator[i][j] == 0) {
-                    next_H[i][j] = curr_H[i][j]; /* avoid division by zero */
-                }
-                else {
-                    next_H[i][j] = curr_H[i][j] * (1 - beta + beta * (numerator[i][j] / denominator[i][j]));
-                }
+                if (denominator[i][j] == 0) { next_H[i][j] = curr_H[i][j]; } /* avoid division by zero */
+                else { next_H[i][j] = curr_H[i][j] * (1 - beta + beta * (numerator[i][j] / denominator[i][j])); }
             }
         }
-        /* check convergence */
-        curr_frobenius_norm = frobenius_norm_squared(next_H, curr_H, N, k);
-        if (curr_frobenius_norm < eps) {
-            free_matrix(curr_H, N);
-            free_matrix(curr_H_transpose, k);
-            free_matrix(denominator, N);
-            free_matrix(numerator, N);
-            return next_H; /* converged */
+        curr_frobenius_norm = frobenius_norm_squared(next_H, curr_H, N, k); /* check convergence */
+        if (curr_frobenius_norm < eps) { free_matrix(curr_H, N); free_matrix(curr_H_transpose, k); free_matrix(denominator, N); free_matrix(numerator, N); return next_H; } /* converged */
+        for (i = 0; i < N; i++) { /* swap curr_H and next_H if no convergence */
+            for (j = 0; j < k; j++) { curr_H[i][j] = next_H[i][j]; }
         }
-        /* swap curr_H and next_H if no convergence */
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < k; j++) {
-                curr_H[i][j] = next_H[i][j];
-            }
+        for (i = 0; i < N; i++) { /* reset next_H for the next iteration */
+            for (j = 0; j < k; j++) { next_H[i][j] = 0.0; }
         }
-        /* reset next_H for the next iteration */
-        for (i = 0; i < N; i++) {
-            for (j = 0; j < k; j++) {
-                next_H[i][j] = 0.0; /* reset */
-            }
-        }
-        /* free intermediate matrices */
-        free_matrix(curr_H_transpose, k); 
-        free_matrix(denominator, N);
-        free_matrix(numerator, N); 
+        free_matrix(curr_H_transpose, k); free_matrix(denominator, N); free_matrix(numerator, N); /* free intermediate matrices */
     }
-    /* if we reach here, we did not converge - then we should free curr_H, next_H and return*/
-    free_matrix(curr_H, N);
-    free_matrix(next_H, N);
-    return NULL; /* caller is the handler */
+    free_matrix(curr_H, N); free_matrix(next_H, N); /* if we reach here, we did not converge - then we should free curr_H, next_H and return*/
+    return NULL; 
 }
 /*
  * ================================================================================================
@@ -477,29 +379,10 @@ double** optimize_h(double** W, double** init_H, int N, int k) {
  * ================================================================================================
 */
 int main(int argc, char *argv[]) {
-    char *goal;
-    char *filename;
-    int N = 0;
-    int d = 0;
-    double **data_points = NULL;
-    double **sym_matrix = NULL;
-    double **ddg_matrix = NULL;
-    double **norm_matrix = NULL;
-
-    /* validate and parsing */
-    if (argc != 3) {
-        printf("An Error Has Occurred\n");
-        return 1;
-    }
-    goal = argv[1];
-    filename = argv[2];
-    
-    data_points = read_data_points(filename, &N, &d);
-    if (data_points == NULL) {
-        printf("An Error Has Occurred\n");
-        return 1;
-    }
-    /* execution */
+    char *goal; char *filename; int N = 0; int d = 0; double **data_points = NULL; double **sym_matrix = NULL; double **ddg_matrix = NULL; double **norm_matrix = NULL;
+    if (argc != 3) { printf("An Error Has Occurred\n"); return 1; }
+    goal = argv[1]; filename = argv[2];
+    data_points = read_data_points(filename, &N, &d); if (data_points == NULL) { printf("An Error Has Occurred\n"); return 1; }
     if (string_compare(goal, "sym") == 1) {
         sym_matrix = calculate_sym_matrix(data_points, N, d);
         if (sym_matrix == NULL) {
@@ -535,8 +418,6 @@ int main(int argc, char *argv[]) {
         return 1; /* invalid goal */
     }
     /* free allocated memory */
-    /* TODO: free the memory */
     free_matrix(data_points, N); /* free original matrix */
-
     return 0;
 }
