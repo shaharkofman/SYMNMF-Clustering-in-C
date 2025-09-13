@@ -6,7 +6,7 @@ static PyMethodDef symnmf_methods[] = {
     {"sym", (PyCFunction)sym_capi, METH_VARARGS, "calculate similarity matrix A"},
     {"ddg", (PyCFunction)ddg_capi, METH_VARARGS, "calculate diagonal degree matrix D"},
     {"norm", (PyCFunction)norm_capi, METH_VARARGS, "calculates normalized similarity matrix W"},
-    {"symnmf", (PyCFunction)symnmf_capi, METH_VARARGS, "execute the full symnmf algorithm"},
+    {"symnmf", (PyCFunction)symnmf_capi, METH_VARARGS, "execute symnmf algorithm"},
     {NULL, NULL, 0, NULL} 
 };
 static struct PyModuleDef symnmfmodule = {
@@ -27,8 +27,7 @@ PyMODINIT_FUNC PyInit_symnmf(void) {
 */
 static double** py_to_c_matrix(PyObject* python_points_list, int *N, int *d) {
     double **data_points;
-    int i;
-    int j;
+    int i, j;
     double c_coord;
 
     if (!PyList_Check(python_points_list)) {
@@ -48,31 +47,19 @@ static double** py_to_c_matrix(PyObject* python_points_list, int *N, int *d) {
     for (i = 0; i < *N; i++) {
         data_points[i] = (double *)malloc(*d * sizeof(double));
         if (data_points[i] == NULL) {
-            for (j = 0; j < i; j++) {
-                free(data_points[j]);
-            }
+            for (j = 0; j < i; j++) { free(data_points[j]); }
             free(data_points);
             PyErr_SetString(PyExc_MemoryError, "An Error Has Occurred");
             return NULL; 
         }
         PyObject *point = PyList_GetItem(python_points_list, i);
-        if (point == NULL) {
-            free_matrix(data_points, *N);
-            return NULL; /* error is raised by parsing function */
-        }
+        if (point == NULL) { free_matrix(data_points, *N); return NULL; } /* error is raised by parsing function */
         for (j = 0; j < *d; j++) {
             PyObject *py_coord = PyList_GetItem(point, j);
-            if (py_coord == NULL) {
-                free_matrix(data_points, *N);
-                return NULL; /* error is raised by parsing function */
-            }
-
+            if (py_coord == NULL) { free_matrix(data_points, *N); return NULL; } /* error is raised by parsing function */
             c_coord = PyFloat_AsDouble(py_coord); /* actual conversion */
             /* if PyFloat() returns -1.0 then parsing has failed but we also need to consider that the coordinate itself can be -1.0 */
-            if (c_coord == -1.0 && PyErr_Occurred()) {
-                free_matrix(data_points, *N);
-                return NULL; /* error is raised by parsing function */
-            }
+            if (c_coord == -1.0 && PyErr_Occurred()) { free_matrix(data_points, *N); return NULL; } /* error is raised by parsing function */
             data_points[i][j] = c_coord;
         }
     }
@@ -228,59 +215,42 @@ PyObject* norm_capi(PyObject *self, PyObject *args) {
 }
 /* 
  * ========================================SYMNMF_CAPI=============================================
- * this function is the C API for calling symnmf from python
- * in additio to the data points received from python, it also receives the initial randomized matrix H
+ * this function executes symnmf algorithm taking W matrix and initial H as parameters
 */
 PyObject* symnmf_capi(PyObject *self, PyObject *args) {
-    PyObject* python_points_list;
+    PyObject* python_W_matrix;
     PyObject* python_init_H;
-    int N;
-    int d;
+    int N, d;
     int N_H; /* place holder for py_to_c output */
     int k; 
-    double **data_points;
-    double **norm_matrix;
+    double **W_matrix;
     double **init_H;
     double **optimized_H;
     PyObject* py_return_matrix;
 
     /* parse the python object */
-    if (!PyArg_ParseTuple(args, "OO", &python_points_list, &python_init_H)) {
+    if (!PyArg_ParseTuple(args, "OO", &python_W_matrix, &python_init_H)) {
         return NULL; /* error is raised by parsing function */
     }
-    /* get matrix W by converting python_points_list to C and calling C methods */
-    data_points = py_to_c_matrix(python_points_list, &N, &d);
-    if (data_points == NULL) {
-        return NULL; /* error is raised by parsing function */
-    }
-    norm_matrix = calculate_norm_matrix(data_points, N, d);
-    free_matrix(data_points, N); /* we dont need the data points anymore */
-    if (norm_matrix == NULL) {
-        PyErr_SetString(PyExc_MemoryError, "An Error Has Occurred");
-        return NULL; 
-    }
-
+    /* convert W matrix to C */
+    W_matrix = py_to_c_matrix(python_W_matrix, &N, &d);
+    if (W_matrix == NULL) { return NULL; } /* error is raised by parsing function */
+    
     /* convert initial H matrix to C */
     init_H = py_to_c_matrix(python_init_H, &N_H, &k);
-    if (init_H == NULL) {
-        free_matrix(norm_matrix, N);
-        return NULL;
-    }
-
+    if (init_H == NULL) { free_matrix(W_matrix, N); return NULL; }
+    
     /* use optimize_h to execute the algorithm */
-    optimized_H = optimize_h(norm_matrix, init_H, N, k);
-    free_matrix(norm_matrix, N);
-    free_matrix(init_H, N_H); /* no problem with dimensions even though H is Nxk since free_matrix works by rows */
+    optimized_H = optimize_h(W_matrix, init_H, N, k);
+    free_matrix(W_matrix, N);
+    free_matrix(init_H, N_H);
     if (optimized_H == NULL) {
         PyErr_SetString(PyExc_MemoryError, "An Error Has Occurred");
         return NULL;
     }
-
     /* convert H back to python and return it */
     py_return_matrix = c_to_py_matrix(optimized_H, N, k);
     free_matrix(optimized_H, N);
-    if (py_return_matrix == NULL) {
-        return NULL; /* error is raised by parsing function */
-    }
+    if (py_return_matrix == NULL) { return NULL; } /* error is raised by parsing function */
     return py_return_matrix; 
 }
