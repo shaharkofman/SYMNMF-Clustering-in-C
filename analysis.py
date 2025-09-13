@@ -22,7 +22,7 @@ def main():
     upper_bound = 2 * np.sqrt(m/k)
     N = len(data_points)
     init_H = np.random.uniform(low=0, high=upper_bound, size=(N,k)) # a random matrix of size Nxk with values in the legal interval
-    optimized_H = symnmf.symnmf(data_points, init_H.tolist()) #pass the data and the initial H in the form of a python matrix
+    optimized_H = symnmf.symnmf(W, init_H.tolist()) #pass W and the initial H in the form of a python matrix
 
     #convert the H matrix to a numpy array and extract the custer assignment for each point using argmax()
     H_np = np.array(optimized_H)
@@ -35,7 +35,7 @@ def main():
     symnmf_score = silhouette_score(data_points, symnmf_clusters)
     kmeans_score = silhouette_score(data_points, kmeans_clusters)
     
-    print(f"symnmf: {symnmf_score:.4f}")
+    print(f"nmf: {symnmf_score:.4f}")
     print(f"kmeans: {kmeans_score:.4f}")
 
 if __name__ == "__main__":
