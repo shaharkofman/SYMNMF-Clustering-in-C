@@ -120,7 +120,7 @@ kmeans: 0.1147
 
 ### ⚠️ Implementation Details
 
-  * **Output Format:** All matrix outputs must be formatted to **4 decimal places** (`%.4f`), with values separated by commas, and each row on a new line.
-  * **H Initialization:** In `symnmf.py`, initialize H using `np.random.seed(1234)` and `np.random.uniform()` with values from $[0, 2\sqrt{m/k}]$, where $m$ is the average of all entries in $W$.
-  * **Convergence Parameters:** Use $max\_iter=300$ and $\epsilon=1e-4$ for convergence of both K-means and NMF.
-  * **Error Handling:** In case of any error, print `"An Error Has Occurred"` and terminate. All dynamically allocated memory must be freed.
+  * **Output Format:** All matrix outputs are formatted to **4 decimal places** (`%.4f`), with values separated by commas, and each row on a new line.
+  * **H Initialization:** In `symnmf.py`, H is initialized using `np.random.seed(1234)` and `np.random.uniform()` with values from $[0, 2\sqrt{m/k}]$, where $m$ is the average of all entries in $W$.
+  * **Convergence Parameters:** Used $max\_iter=300$ and $\epsilon=1e-4$ for convergence of both K-means and NMF.
+  * **Error Handling:** In case of any error, `"An Error Has Occurred"` is printed and the program is terminated. All dynamically allocated memory is freed.
